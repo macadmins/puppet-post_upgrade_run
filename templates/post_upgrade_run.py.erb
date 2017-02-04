@@ -1,0 +1,72 @@
+#!/usr/bin/python
+
+import subprocess
+import os
+import sys
+import plistlib
+import time
+
+def get_current_os_version():
+    return subprocess.check_output(['/usr/bin/sw_vers', '-productVersion']).strip()
+
+def run_puppet():
+    # Run puppet
+    print 'Running Puppet'
+    wait_for_network()
+    time.sleep(5)
+    puppet_command = '<%= @puppet_command %>'
+    task = subprocess.Popen(puppet_command, stdout=subprocess.PIPE,
+                            stderr=subprocess.PIPE, shell=True)
+    (stdout, stderr) = task.communicate()
+    if stderr:
+        print stderr
+    else:
+        print stdout
+
+def ip_addresses():
+    # Dirty, re-write this!
+    command = "ifconfig  | grep -E 'inet.[0-9]' | grep -v '127.0.0.1' | awk '{ print $2}' | wc -l"
+    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
+    return proc.communicate()[0].replace('\n', '')
+
+def wait_for_network():
+    while True:
+        if ip_addresses().strip() != "0":
+            # we have a valid IP address
+            break
+        else:
+            # No valid IP yet, wait a second before retrying
+            time.sleep(1)
+
+def check_version(plist_path, current_os_version):
+    try:
+        plist_data = plistlib.readPlist(plist_path)
+    except:
+        return False
+
+    if plist_data['current_os_version'] != current_os_version:
+        return False
+    else:
+        return True
+
+def main():
+    plist_path = '/Library/Application Support/Management/os_version.plist'
+    # Get current os version
+    current_os_version = get_current_os_version()
+    # Does the plist with the last version in exist?
+    # If not, we've not run before
+    if not os.path.exists(plist_path):
+        run_puppet()
+
+    # If the OS version is different from the last boot, we need to run
+    version_check = check_version(plist_path, current_os_version)
+    if not version_check:
+        run_puppet()
+
+    if not version_check:
+        plist_data = {}
+        plist_data['current_os_version'] = current_os_version
+        plistlib.writePlist(plist_data, plist_path)
+
+if __name__ == '__main__':
+    main()
