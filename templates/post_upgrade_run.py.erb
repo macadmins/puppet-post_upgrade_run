@@ -7,7 +7,7 @@ import plistlib
 import time
 
 def get_current_os_version():
-    return subprocess.check_output(['/usr/bin/sw_vers', '-productVersion']).strip()
+    return subprocess.check_output(['/usr/bin/sw_vers', '-buildVersion']).strip()
 
 def run_puppet():
     # Run puppet
