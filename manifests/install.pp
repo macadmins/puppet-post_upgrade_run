@@ -22,4 +22,12 @@ class post_upgrade_run::install {
     mode    => '0755',
     content => template('post_upgrade_run/post_upgrade_run.py.erb'),
   }
+
+  file {'/Library/LaunchDaemons/org.macadmins.post_upgrade_run.plist':
+    ensure => 'present',
+    owner  => 'root',
+    group  => 'wheel',
+    mode   => '0644',
+    source => 'puppet:///modules/post_upgrade_run/org.macadmins.post_upgrade_run.plist'
+  }
 }
